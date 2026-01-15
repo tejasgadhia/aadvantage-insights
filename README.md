@@ -38,7 +38,7 @@ A retrospective analytics tool for 15+ years of American Airlines AAdvantage dat
 ## 🚀 Quick Start
 
 1. **Get your data** from [American Airlines Privacy Portal](https://www.aa.com/privacy)
-2. **Open the app**: https://tejasgadhia.github.io/aadvantage-insights/dashboard.html
+2. **Open the app**: https://tejasgadhia.github.io/aadvantage-insights
 3. **Upload your files**:
    - `Flight_Records_*.json`
    - `AAdvantage_Account_Activity_*.json`
@@ -62,16 +62,26 @@ A retrospective analytics tool for 15+ years of American Airlines AAdvantage dat
 
 ```
 aadvantage-insights/
-├── dashboard.html      # Main dashboard (Phase 3)
-├── index.html          # Original light-theme version
+├── index.html              # Main dashboard
+├── README.md
 ├── js/
-│   ├── app.js          # Core parsing & normalization
-│   ├── stats.js        # Phase 1 statistics
-│   ├── stats-extended.js
-│   └── stats-phase2.js # Enhanced analytics
+│   ├── app.js              # Core parsing & normalization
+│   ├── stats.js            # Statistics engine
+│   ├── stats-extended.js   # Extended analytics
+│   └── stats-phase2.js     # Phase 2 features
 ├── js/data/
-│   └── airports-full.json  # Airport database
-└── source-data/        # Your AA data files (gitignored)
+│   └── airports-full.json  # Airport database (6,000+)
+├── css/
+│   └── style.css
+├── docs/                   # Documentation
+│   ├── PROJECT_PLAN.md
+│   ├── PROJECT_INSTRUCTIONS.md
+│   └── Flighty_Design_Research.md
+├── dev/                    # Development/test files
+│   ├── index-light.html    # Light theme version
+│   ├── test.html           # Phase 1 test console
+│   └── test-phase2.html    # Phase 2 test console
+└── source-data/            # Your AA data (gitignored)
 ```
 
 ## 🗺 Roadmap

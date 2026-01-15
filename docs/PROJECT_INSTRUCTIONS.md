@@ -26,10 +26,8 @@
 
 ```
 aadvantage-insights/
-├── dashboard.html          # Main dashboard (dark mode, Phase 3)
-├── index.html              # Original light theme version
-├── test.html               # Phase 1 test console
-├── test-phase2.html        # Phase 2 statistics test
+├── index.html              # Main dashboard (dark mode)
+├── README.md
 │
 ├── js/
 │   ├── app.js              # Core: parsers, normalizers, UI rendering
@@ -47,15 +45,21 @@ aadvantage-insights/
 ├── css/
 │   └── style.css           # Custom styles (minimal, Tailwind handles most)
 │
-├── source-data/            # User's AA data files (gitignored)
-│   ├── Flight_Records_*.json
-│   ├── AAdvantage_Account_Activity_*.json
-│   ├── AAdvantage_Account_Profile_*.json
-│   └── Admirals_Club_*.json
+├── docs/                   # Documentation
+│   ├── PROJECT_PLAN.md     # Detailed roadmap with phase checklists
+│   ├── PROJECT_INSTRUCTIONS.md  # This file
+│   └── Flighty_Design_Research.md  # Design inspiration
 │
-├── PROJECT_PLAN.md         # Detailed roadmap with phase checklists
-├── PROJECT_INSTRUCTIONS.md # This file
-└── Flighty_*.md            # Design research/inspiration
+├── dev/                    # Development & test files
+│   ├── index-light.html    # Original light theme version
+│   ├── test.html           # Phase 1 test console
+│   └── test-phase2.html    # Phase 2 statistics test
+│
+└── source-data/            # User's AA data files (gitignored)
+    ├── Flight_Records_*.json
+    ├── AAdvantage_Account_Activity_*.json
+    ├── AAdvantage_Account_Profile_*.json
+    └── Admirals_Club_*.json
 ```
 
 ---
@@ -245,7 +249,7 @@ const statusColors = {
 
 ## Deployment
 
-GitHub Pages auto-deploys from `main` branch via `.github/workflows/deploy.yml`.
+GitHub Pages auto-deploys from `main` branch.
 
 ```bash
 git add .
