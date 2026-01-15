@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAdvantage Insights - Your Flight Story</title>
+  <meta name="description" content="15 years of American Airlines travel, visualized">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            aa: {
+              red: '#C8102E',
+              blue: '#0078D2',
+              navy: '#00263A',
+              gold: '#D4AF37',
+              platinum: '#E5E4E2',
+              executive: '#8B5CF6',
+            },
+            dark: {
+              900: '#0a0a0f',
+              800: '#111118',
+              700: '#1a1a24',
+              600: '#252532',
+              500: '#32324a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #0a0a0f 0%, #111118 100%);
+      min-height: 100vh;
+    }
+    
+    /* Smooth animations */
+    .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+    .slide-up { animation: slideUp 0.5s ease-out forwards; }
+    .scale-in { animation: scaleIn 0.4s ease-out forwards; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    /* Staggered animation delays */
+    .delay-1 { animation-delay: 0.1s; opacity: 0; }
+    .delay-2 { animation-delay: 0.2s; opacity: 0; }
+    .delay-3 { animation-delay: 0.3s; opacity: 0; }
+    .delay-4 { animation-delay: 0.4s; opacity: 0; }
+    .delay-5 { animation-delay: 0.5s; opacity: 0; }
+    
+    /* Glass card effect */
+    .glass-card {
+      background: rgba(26, 26, 36, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+    }
+    
+    .glass-card-light {
+      background: rgba(50, 50, 74, 0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+    }
+    
+    /* Stat card hover */
+    .stat-card {
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    /* Status tier colors */
+    .status-gold { color: #D4AF37; }
+    .status-platinum { color: #E5E4E2; }
+    .status-platinum-pro { color: #60A5FA; }
+    .status-executive { color: #8B5CF6; }
+    
+    /* Progress bar */
+    .progress-bar {
+      background: linear-gradient(90deg, #0078D2 0%, #8B5CF6 100%);
+      border-radius: 999px;
+      transition: width 1s ease-out;
+    }
+    
+    /* Map styling */
+    #route-map {
+      background: #0a0a0f;
+      border-radius: 16px;
+    }
+    
+    .leaflet-container {
+      background: #0a0a0f !important;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #111118; }
+    ::-webkit-scrollbar-thumb { background: #32324a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a4a6a; }
+    
+    /* Year selector */
+    .year-pill {
+      transition: all 0.2s ease;
+    }
+    .year-pill:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .year-pill.active {
+      background: #0078D2;
+      color: white;
+    }
+    
+    /* Chart styling */
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    
+    /* Glow effects */
+    .glow-blue { box-shadow: 0 0 40px rgba(0, 120, 210, 0.3); }
+    .glow-purple { box-shadow: 0 0 40px rgba(139, 92, 246, 0.3); }
+    
+    /* Upload area */
+    .upload-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #0078D2;
+      background: rgba(0, 120, 210, 0.1);
+    }
+    
+    /* Hide elements initially */
+    .dashboard-section { display: none; }
+    .dashboard-section.visible { display: block; }
+  </style>
+</head>
+<body class="dark text-white">
+
+  <!-- ============================================================ -->
+  <!-- UPLOAD SCREEN -->
+  <!-- ============================================================ -->
+  <div id="upload-screen" class="min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-lg w-full text-center">
+      <!-- Logo/Brand -->
+      <div class="mb-8 fade-in">
+        <div class="inline-flex items-center gap-3 mb-4">
+          <svg class="w-12 h-12 text-aa-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 19l-7-7 7-7M19 12H5" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-45 12 12)"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          <span class="text-3xl font-semibold tracking-tight">AAdvantage Insights</span>
+        </div>
+        <p class="text-gray-400 text-lg">Your 15-year flight story, visualized</p>
+      </div>
+      
+      <!-- Upload Zone -->
+      <div id="upload-zone" class="upload-zone glass-card p-12 cursor-pointer fade-in delay-1" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" multiple accept=".json" class="hidden">
+        
+        <div class="mb-6">
+          <svg class="w-16 h-16 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+        </div>
+        
+        <h3 class="text-xl font-medium mb-2">Drop your AA data files here</h3>
+        <p class="text-gray-400 text-sm">or click to browse</p>
+        
+        <div class="mt-6 flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+          <span class="px-2 py-1 bg-dark-600 rounded">Flight_Records.json</span>
+          <span class="px-2 py-1 bg-dark-600 rounded">Account_Activity.json</span>
+          <span class="px-2 py-1 bg-dark-600 rounded">Account_Profile.json</span>
+          <span class="px-2 py-1 bg-dark-600 rounded">Admirals_Club.json</span>
+        </div>
+      </div>
+      
+      <!-- File Status -->
+      <div id="file-status" class="mt-6 space-y-2 text-left hidden">
+        <!-- Populated dynamically -->
+      </div>
+      
+      <!-- Privacy Note -->
+      <p class="mt-8 text-xs text-gray-600 fade-in delay-2">
+        🔒 Your data never leaves your browser. All processing happens locally.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MAIN DASHBOARD -->
+  <!-- ============================================================ -->
+  <div id="dashboard" class="hidden">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 glass-card border-b border-white/5 px-6 py-4">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg class="w-8 h-8 text-aa-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 19l-7-7 7-7M19 12H5" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-45 12 12)"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          <span class="text-xl font-semibold">AAdvantage Insights</span>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- Year Selector -->
+          <div id="year-selector" class="flex gap-1 bg-dark-700 rounded-full p-1">
+            <button class="year-pill px-4 py-1.5 rounded-full text-sm font-medium active" data-year="all">All Time</button>
+            <!-- Years populated dynamically -->
+          </div>
+          
+          <!-- Export -->
+          <button id="export-btn" class="flex items-center gap-2 px-4 py-2 bg-aa-blue hover:bg-blue-600 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Export
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section - The Passport -->
+    <section id="passport" class="dashboard-section visible px-6 py-12">
+      <div class="max-w-7xl mx-auto">
+        <!-- User Header -->
+        <div class="mb-12 slide-up">
+          <div class="flex items-center gap-4 mb-2">
+            <span id="user-status" class="px-3 py-1 rounded-full text-sm font-medium bg-aa-executive/20 text-aa-executive">
+              Executive Platinum
+            </span>
+            <span id="user-mm" class="px-3 py-1 rounded-full text-sm font-medium bg-aa-gold/20 text-aa-gold">
+              1MM
+            </span>
+          </div>
+          <h1 class="text-4xl md:text-5xl font-bold mb-2">
+            <span id="user-name">Welcome back</span>
+          </h1>
+          <p class="text-gray-400 text-lg">
+            <span id="date-range">2011 - 2026</span> • <span id="years-count">15</span> years of travel
+          </p>
+        </div>
+        
+        <!-- Lifetime Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          <div class="stat-card glass-card p-6 slide-up delay-1">
+            <div class="text-4xl font-bold text-white mb-1" id="stat-flights">0</div>
+            <div class="text-gray-400 text-sm">Total Flights</div>
+          </div>
+          <div class="stat-card glass-card p-6 slide-up delay-2">
+            <div class="text-4xl font-bold text-white mb-1" id="stat-miles">0</div>
+            <div class="text-gray-400 text-sm">Miles Flown</div>
+          </div>
+          <div class="stat-card glass-card p-6 slide-up delay-3">
+            <div class="text-4xl font-bold text-white mb-1" id="stat-airports">0</div>
+            <div class="text-gray-400 text-sm">Airports</div>
+          </div>
+          <div class="stat-card glass-card p-6 slide-up delay-4">
+            <div class="text-4xl font-bold text-white mb-1" id="stat-countries">0</div>
+            <div class="text-gray-400 text-sm">Countries</div>
+          </div>
+        </div>
+        
+        <!-- Secondary Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-12">
+          <div class="glass-card-light p-4 text-center slide-up delay-2">
+            <div class="text-2xl font-semibold" id="stat-hours">0</div>
+            <div class="text-gray-500 text-xs">Hours in Air</div>
+          </div>
+          <div class="glass-card-light p-4 text-center slide-up delay-2">
+            <div class="text-2xl font-semibold" id="stat-eqm">0</div>
+            <div class="text-gray-500 text-xs">Lifetime EQM</div>
+          </div>
+          <div class="glass-card-light p-4 text-center slide-up delay-3">
+            <div class="text-2xl font-semibold" id="stat-upgrades">0</div>
+            <div class="text-gray-500 text-xs">Upgrades</div>
+          </div>
+          <div class="glass-card-light p-4 text-center slide-up delay-3">
+            <div class="text-2xl font-semibold" id="stat-intl">0%</div>
+            <div class="text-gray-500 text-xs">International</div>
+          </div>
+          <div class="glass-card-light p-4 text-center slide-up delay-4">
+            <div class="text-2xl font-semibold" id="stat-lounge">0</div>
+            <div class="text-gray-500 text-xs">Lounge Visits</div>
+          </div>
+          <div class="glass-card-light p-4 text-center slide-up delay-4">
+            <div class="text-2xl font-semibold" id="stat-avg-distance">0</div>
+            <div class="text-gray-500 text-xs">Avg Distance</div>
+          </div>
+        </div>
+
+        <!-- Route Map -->
+        <div class="glass-card p-6 mb-12 slide-up delay-3">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold">Your Route Network</h2>
+            <div class="flex gap-2 text-sm">
+              <span class="flex items-center gap-2">
+                <span class="w-3 h-0.5 bg-aa-blue rounded"></span>
+                <span class="text-gray-400">Routes</span>
+              </span>
+              <span class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-aa-red rounded-full"></span>
+                <span class="text-gray-400">Airports</span>
+              </span>
+            </div>
+          </div>
+          <div id="route-map" class="h-[400px] rounded-xl overflow-hidden"></div>
+        </div>
+        
+        <!-- Two Column Layout -->
+        <div class="grid md:grid-cols-2 gap-6 mb-12">
+          <!-- Flights by Year Chart -->
+          <div class="glass-card p-6 slide-up delay-4">
+            <h3 class="text-lg font-semibold mb-4">Flights by Year</h3>
+            <div class="chart-container">
+              <canvas id="flights-by-year-chart"></canvas>
+            </div>
+          </div>
+          
+          <!-- Top Routes -->
+          <div class="glass-card p-6 slide-up delay-4">
+            <h3 class="text-lg font-semibold mb-4">Most Traveled Routes</h3>
+            <div id="top-routes" class="space-y-3">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Cabin Distribution -->
+        <div class="grid md:grid-cols-3 gap-6 mb-12">
+          <div class="glass-card p-6 slide-up delay-5">
+            <h3 class="text-lg font-semibold mb-4">Cabin Class</h3>
+            <div class="chart-container h-[200px]">
+              <canvas id="cabin-chart"></canvas>
+            </div>
+          </div>
+          
+          <div class="glass-card p-6 col-span-2 slide-up delay-5">
+            <h3 class="text-lg font-semibold mb-4">Monthly Travel Pattern</h3>
+            <div class="chart-container h-[200px]">
+              <canvas id="monthly-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- LOYALTY TIMELINE -->
+    <!-- ============================================================ -->
+    <section id="loyalty" class="dashboard-section visible px-6 py-12 border-t border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-8">Loyalty Journey</h2>
+        
+        <!-- Million Miler Progress -->
+        <div class="glass-card p-6 mb-8 glow-purple">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-semibold">Million Miler Progress</h3>
+              <p class="text-gray-400 text-sm">Lifetime Elite Qualifying Miles</p>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-bold text-aa-executive" id="mm-level">1MM</div>
+              <div class="text-gray-400 text-sm" id="mm-total">1,234,567 EQM</div>
+            </div>
+          </div>
+          
+          <div class="h-4 bg-dark-600 rounded-full overflow-hidden mb-2">
+            <div id="mm-progress-bar" class="progress-bar h-full" style="width: 23%"></div>
+          </div>
+          
+          <div class="flex justify-between text-sm text-gray-500">
+            <span id="mm-current-level">1MM</span>
+            <span id="mm-progress-text">234,567 / 1,000,000 to 2MM</span>
+            <span id="mm-next-level">2MM</span>
+          </div>
+        </div>
+        
+        <!-- Status Timeline -->
+        <div class="glass-card p-6 mb-8">
+          <h3 class="text-lg font-semibold mb-6">Status History</h3>
+          <div id="status-timeline" class="relative">
+            <!-- Timeline populated dynamically -->
+          </div>
+        </div>
+        
+        <!-- SWU Certificates -->
+        <div class="grid md:grid-cols-4 gap-4">
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold text-green-400" id="swu-earned">0</div>
+            <div class="text-gray-500 text-xs">SWU Earned</div>
+          </div>
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold text-aa-blue" id="swu-used">0</div>
+            <div class="text-gray-500 text-xs">SWU Used</div>
+          </div>
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold text-red-400" id="swu-expired">0</div>
+            <div class="text-gray-500 text-xs">SWU Expired</div>
+          </div>
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold text-aa-gold" id="swu-available">0</div>
+            <div class="text-gray-500 text-xs">SWU Available</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- YEAR-BY-YEAR RETROSPECTIVE -->
+    <!-- ============================================================ -->
+    <section id="retrospective" class="dashboard-section visible px-6 py-12 border-t border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-8">Year by Year</h2>
+        
+        <div id="year-cards" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Year cards populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TRAVEL ERAS -->
+    <!-- ============================================================ -->
+    <section id="eras" class="dashboard-section visible px-6 py-12 border-t border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-2">Your Travel Eras</h2>
+        <p class="text-gray-400 mb-8">How your travel patterns evolved over time</p>
+        
+        <div id="era-timeline" class="space-y-4">
+          <!-- Eras populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- LOUNGE REPORT -->
+    <!-- ============================================================ -->
+    <section id="lounge" class="dashboard-section visible px-6 py-12 border-t border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-8">Lounge Report</h2>
+        
+        <div class="grid md:grid-cols-4 gap-4 mb-8">
+          <div class="glass-card p-6 text-center glow-blue">
+            <div class="text-4xl font-bold" id="lounge-total">0</div>
+            <div class="text-gray-400 text-sm">Total Visits</div>
+          </div>
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold" id="lounge-avg">0</div>
+            <div class="text-gray-500 text-xs">Avg/Year</div>
+          </div>
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold text-green-400" id="lounge-value">$0</div>
+            <div class="text-gray-500 text-xs">Est. Value</div>
+          </div>
+          <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-semibold" id="lounge-flagship">0</div>
+            <div class="text-gray-500 text-xs">Flagship Visits</div>
+          </div>
+        </div>
+        
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-semibold mb-4">Top Lounge Locations</h3>
+          <div id="lounge-locations" class="grid md:grid-cols-2 gap-4">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- INSIGHTS -->
+    <!-- ============================================================ -->
+    <section id="insights" class="dashboard-section visible px-6 py-12 border-t border-white/5">
+      <div class="max-w-7xl mx-auto">
+        <h2 class="text-2xl font-bold mb-8">Insights & Milestones</h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Milestones -->
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-semibold mb-4">Key Milestones</h3>
+            <div id="milestones-list" class="space-y-4">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+          
+          <!-- Fun Facts -->
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-semibold mb-4">Fun Facts</h3>
+            <div id="fun-facts" class="space-y-4">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="px-6 py-8 border-t border-white/5 text-center text-gray-500 text-sm">
+      <p>AAdvantage Insights • Your data stays on your device</p>
+      <p class="mt-2">Made with ✈️ for frequent flyers</p>
+    </footer>
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT -->
+  <!-- ============================================================ -->
+  <script>
+    // ================================================================
+    // GLOBAL STATE
+    // ================================================================
+    let AIRPORTS = {};
+    let AIRPORTS_FULL = null;
+    let allFlights = [];
+    let allStats = {};
+    let selectedYear = 'all';
+    let charts = {};
+
+    // ================================================================
+    // AIRPORT DATA
+    // ================================================================
+    async function loadAirportsData() {
+      if (AIRPORTS_FULL) return AIRPORTS_FULL;
+      try {
+        const response = await fetch('js/data/airports-full.json');
+        AIRPORTS_FULL = await response.json();
+        return AIRPORTS_FULL;
+      } catch (err) {
+        console.error('Failed to load airports:', err);
+        return {};
+      }
+    }
+
+    async function loadAirportsForCodes(codes) {
+      const data = await loadAirportsData();
+      for (const code of codes) {
+        const upper = (code || '').trim().toUpperCase();
+        if (data[upper]) AIRPORTS[upper] = data[upper];
+      }
+    }
+
+    function getAirport(code) {
+      return AIRPORTS[(code || '').trim().toUpperCase()] || {};
+    }
+
+    // ================================================================
+    // FARE CLASS MAPPING
+    // ================================================================
+    const FARE_CLASSES = {
+      "F": "F", "A": "F", "P": "F",
+      "J": "C", "R": "C", "D": "C", "I": "C", "C": "C",
+      "W": "W", "E": "W",
+      "Y": "Y", "B": "Y", "M": "Y", "H": "Y", "K": "Y", "L": "Y",
+      "G": "Y", "V": "Y", "S": "Y", "N": "Y", "Q": "Y", "O": "Y",
+      "T": "Y", "U": "Y", "X": "Y", "Z": "Y"
+    };
+    const ECONOMY_CLASSES = new Set(['Y', 'B', 'M', 'H', 'K', 'L', 'G', 'V', 'S', 'N', 'Q', 'O', 'T', 'U', 'X', 'Z']);
+
+    function getCabinFromFare(fc) {
+      return FARE_CLASSES[(fc || '').trim().toUpperCase()] || 'Y';
+    }
+
+    // ================================================================
+    // UTILITIES
+    // ================================================================
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 3959;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+    }
+
+    function estimateDuration(dist) {
+      if (!dist) return null;
+      if (dist < 500) return Math.round((dist / 350 + 0.5) * 10) / 10;
+      if (dist < 2000) return Math.round((dist / 450 + 0.75) * 10) / 10;
+      return Math.round((dist / 500 + 1.0) * 10) / 10;
+    }
+
+    function formatNumber(n) {
+      return (n || 0).toLocaleString();
+    }
+
+    function formatCompact(n) {
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+      return n.toString();
+    }
+
+    // ================================================================
+    // FILE PARSING
+    // ================================================================
+    function detectFileType(data) {
+      if (data?.['Flight Data']) return 'flight_records';
+      if (data?.['Advantage Activity Data']) return 'account_activity';
+      if (data?.['Admiral Data']) return 'admirals_club';
+      if (data?.['Profile Data']) return 'account_profile';
+      return 'unknown';
+    }
+
+    function parseFlightRecords(data) {
+      const flights = [];
+      const flightData = data?.['Flight Data'] || [];
+      for (const record of flightData) {
+        const itinerary = record['Itinerary Information'] || [];
+        const flightInfo = record['Your Flight Information'] || [{}];
+        const pnr = flightInfo[0]?.['Reservation Record Locator'] || '';
+        for (const seg of itinerary) {
+          const status = (seg['Segment Current Status Code'] || '').trim();
+          if (['HK', 'TK', 'RR', 'SS'].includes(status)) {
+            flights.push({
+              source: 'flight_records', pnr: seg['Reservation Record Locator'] || pnr,
+              bookingDate: seg['Reservation Create Date'],
+              departureDate: seg['Segment Departure Date'],
+              departureTime: seg['Segment Departure Time'],
+              origin: (seg['Segment Departure Airport Code'] || '').trim(),
+              destination: (seg['Segment Arrival Airport Code'] || '').trim(),
+              marketingFlight: (seg['Marketing Flight'] || '').trim(),
+              operatingFlight: (seg['Operating Flight'] || '').trim(),
+              bookingClass: (seg['Booking Fare Class Code'] || '').trim(),
+              cabinCode: (seg['Cabin Code'] || '').trim()
+            });
+          }
+        }
+      }
+      return flights;
+    }
+
+    function parseAccountActivity(data) {
+      const activityData = data?.['Advantage Activity Data']?.[0] || {};
+      const flightActivity = (activityData['Flight Activity Information'] || []).map(a => ({
+        departureDate: a['Departure Date Of Flight Segment'],
+        origin: (a['Departure Airport'] || '').trim(),
+        destination: (a['Arrival Airport'] || '').trim(),
+        airline: (a['Airlines'] || '').trim(),
+        flightNumber: (a['Flight Number'] || '').trim(),
+        fareClass: (a['Fare Class'] || '').trim(),
+        eqm: parseInt(a['Elite Qualifying - Miles (EQMs)'] || 0, 10),
+        eqs: parseFloat(a['Elite Qualifying - Segments (EQSs)'] || 0),
+        eqd: parseFloat((a['Elite Qualifying - Dollars (EQDs)'] || '0').replace(/,/g, '')),
+        baseMiles: parseInt(a['Award Miles - Base Miles'] || 0, 10),
+        bonusMiles: parseInt(a['Award Miles - Bonus Miles'] || 0, 10)
+      }));
+      const swuCerts = (activityData['System Wide Upgrade Information'] || []).map(s => ({
+        earned: parseInt(s['Earned'] || 0, 10),
+        used: parseInt(s['Used'] || 0, 10),
+        expired: parseInt(s['Expired'] || 0, 10),
+        available: parseInt(s['Available'] || 0, 10)
+      }));
+      return { flightActivity, swuCerts };
+    }
+
+    function parseAdmiralsClub(data) {
+      const admiralData = data?.['Admiral Data']?.[0] || {};
+      return (admiralData['Lounge Transaction Registration Information'] || []).map(v => ({
+        locationCode: (v['Lounge Use Location Code'] || '').trim(),
+        loungeType: (v['Lounge Type Description'] || '').trim(),
+        timestamp: v['Registration UTC Timestamp'],
+        guests: parseInt(v['Total Number of Guests'] || 1, 10),
+        diningEligible: v['Dining Eligible Indicator'] === 'Y',
+        flagshipEligible: v['Flagship Door Eligible Indicator'] === 'Y'
+      }));
+    }
+
+    function parseAccountProfile(data) {
+      const profileData = data?.['Profile Data']?.[0] || {};
+      const loyalty = profileData['Loyalty Membership Information']?.[0] || {};
+      const customer = profileData['Customer Profile']?.[0] || {};
+      return {
+        statusTier: (loyalty['AAdvantage Tier Description'] || '').trim(),
+        millionMilerLevel: (loyalty['AAdvantage Million Miler® Level'] || loyalty['AAdvantage Million MilerÂ® Level'] || '').trim(),
+        firstName: (customer['Customer First Name'] || '').trim(),
+        lastName: (customer['Customer Last Name'] || '').trim()
+      };
+    }
+
+
+    // ================================================================
+    // DATA MERGING
+    // ================================================================
+    function mergeFlightData(pnrFlights, flightActivity) {
+      const activityMap = new Map();
+      for (const a of flightActivity) {
+        const key = `${a.departureDate}|${a.origin}|${a.destination}`;
+        activityMap.set(key, a);
+      }
+      
+      const unified = [];
+      const seen = new Set();
+      
+      for (const f of pnrFlights) {
+        const key = `${f.departureDate}|${f.origin}|${f.destination}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        
+        const act = activityMap.get(key);
+        const orig = getAirport(f.origin);
+        const dest = getAirport(f.destination);
+        let dist = null;
+        if (orig.lat && dest.lat) dist = haversineDistance(orig.lat, orig.lon, dest.lat, dest.lon);
+        
+        const cabinBooked = getCabinFromFare(f.bookingClass) || f.cabinCode || 'Y';
+        const cabinFlown = f.cabinCode || cabinBooked;
+        const isUpgrade = ECONOMY_CLASSES.has(f.bookingClass?.toUpperCase()) && ['C', 'F'].includes(cabinFlown);
+        
+        unified.push({
+          departureDate: f.departureDate, departureTime: f.departureTime,
+          origin: f.origin, destination: f.destination,
+          originCity: orig.city, destinationCity: dest.city,
+          originCountry: orig.country, destinationCountry: dest.country,
+          marketingFlight: f.marketingFlight, operatingFlight: f.operatingFlight,
+          bookingClass: f.bookingClass, cabinBooked, cabinFlown,
+          upgraded: isUpgrade, distanceMiles: dist,
+          estimatedDurationHours: estimateDuration(dist),
+          international: orig.country && dest.country && orig.country !== dest.country,
+          pnr: f.pnr, bookingDate: f.bookingDate,
+          eqm: act?.eqm || 0, eqs: act?.eqs || 0, eqd: act?.eqd || 0,
+          baseMiles: act?.baseMiles || 0, bonusMiles: act?.bonusMiles || 0
+        });
+      }
+      
+      for (const a of flightActivity) {
+        const key = `${a.departureDate}|${a.origin}|${a.destination}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        
+        const orig = getAirport(a.origin);
+        const dest = getAirport(a.destination);
+        let dist = null;
+        if (orig.lat && dest.lat) dist = haversineDistance(orig.lat, orig.lon, dest.lat, dest.lon);
+        const cabin = getCabinFromFare(a.fareClass);
+        
+        unified.push({
+          departureDate: a.departureDate, departureTime: null,
+          origin: a.origin, destination: a.destination,
+          originCity: orig.city, destinationCity: dest.city,
+          originCountry: orig.country, destinationCountry: dest.country,
+          marketingFlight: `${a.airline || 'AA'}${a.flightNumber || ''}`,
+          bookingClass: a.fareClass, cabinBooked: cabin, cabinFlown: cabin,
+          upgraded: false, distanceMiles: dist,
+          estimatedDurationHours: estimateDuration(dist),
+          international: orig.country && dest.country && orig.country !== dest.country,
+          eqm: a.eqm, eqs: a.eqs, eqd: a.eqd,
+          baseMiles: a.baseMiles, bonusMiles: a.bonusMiles
+        });
+      }
+      
+      return unified.sort((a, b) => (a.departureDate || '').localeCompare(b.departureDate || ''));
+    }
+
+    // ================================================================
+    // STATISTICS CALCULATIONS
+    // ================================================================
+    function calculateStats(flights, loungeVisits, swuCerts, profile) {
+      const flown = flights.filter(f => f.departureDate);
+      
+      // Lifetime
+      const totalFlights = flown.length;
+      const totalDistance = flown.reduce((s, f) => s + (f.distanceMiles || 0), 0);
+      const totalDuration = flown.reduce((s, f) => s + (f.estimatedDurationHours || 0), 0);
+      const totalEqm = flown.reduce((s, f) => s + (f.eqm || 0), 0);
+      
+      const airports = new Set();
+      const countries = new Set();
+      flown.forEach(f => {
+        if (f.origin) airports.add(f.origin);
+        if (f.destination) airports.add(f.destination);
+        if (f.originCountry) countries.add(f.originCountry);
+        if (f.destinationCountry) countries.add(f.destinationCountry);
+      });
+      
+      const intlFlights = flown.filter(f => f.international).length;
+      const upgrades = flown.filter(f => f.upgraded).length;
+      
+      // Cabin distribution
+      const cabins = { F: 0, C: 0, W: 0, Y: 0 };
+      flown.forEach(f => { cabins[f.cabinFlown || 'Y']++; });
+      
+      // Annual
+      const annual = {};
+      flown.forEach(f => {
+        const yr = f.departureDate.slice(0, 4);
+        if (!annual[yr]) annual[yr] = { flights: 0, distance: 0, eqm: 0, intl: 0, upgrades: 0 };
+        annual[yr].flights++;
+        annual[yr].distance += f.distanceMiles || 0;
+        annual[yr].eqm += f.eqm || 0;
+        if (f.international) annual[yr].intl++;
+        if (f.upgraded) annual[yr].upgrades++;
+      });
+      
+      // Monthly
+      const monthly = Array(12).fill(0);
+      flown.forEach(f => {
+        const m = parseInt(f.departureDate.slice(5, 7), 10) - 1;
+        monthly[m]++;
+      });
+      
+      // Top routes
+      const routeCounts = {};
+      flown.forEach(f => {
+        const route = [f.origin, f.destination].sort().join('-');
+        routeCounts[route] = (routeCounts[route] || 0) + 1;
+      });
+      const topRoutes = Object.entries(routeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([route, count]) => ({ route, count }));
+      
+      // Status history
+      const statusHistory = {};
+      Object.entries(annual).forEach(([yr, data]) => {
+        let status = 'Member';
+        if (data.eqm >= 120000) status = 'Executive Platinum';
+        else if (data.eqm >= 90000) status = 'Platinum Pro';
+        else if (data.eqm >= 60000) status = 'Platinum';
+        else if (data.eqm >= 30000) status = 'Gold';
+        statusHistory[yr] = { status, eqm: data.eqm };
+      });
+      
+      // Million Miler
+      const mmLevel = parseInt(profile?.millionMilerLevel) || Math.floor(totalEqm / 1000000);
+      const mmProgress = totalEqm % 1000000;
+      
+      // SWU
+      const swuTotals = { earned: 0, used: 0, expired: 0, available: 0 };
+      (swuCerts || []).forEach(s => {
+        swuTotals.earned += s.earned;
+        swuTotals.used += s.used;
+        swuTotals.expired += s.expired;
+        swuTotals.available += s.available;
+      });
+      
+      // Lounge
+      const loungeByAirport = {};
+      let flagshipVisits = 0;
+      (loungeVisits || []).forEach(v => {
+        const apt = v.locationCode?.split('-')[0] || 'UNK';
+        loungeByAirport[apt] = (loungeByAirport[apt] || 0) + 1;
+        if (v.loungeType?.includes('Flagship')) flagshipVisits++;
+      });
+      const topLounges = Object.entries(loungeByAirport)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([airport, visits]) => ({ airport, visits }));
+      
+      // Travel eras
+      const years = Object.keys(annual).sort();
+      const eras = [];
+      if (years.length > 2) {
+        let startYr = years[0];
+        let prevVol = annual[years[0]].flights < 15 ? 'low' : annual[years[0]].flights < 40 ? 'moderate' : 'high';
+        for (let i = 1; i < years.length; i++) {
+          const currVol = annual[years[i]].flights < 15 ? 'low' : annual[years[i]].flights < 40 ? 'moderate' : 'high';
+          if (currVol !== prevVol) {
+            eras.push({ startYear: startYr, endYear: years[i-1], volume: prevVol });
+            startYr = years[i];
+            prevVol = currVol;
+          }
+        }
+        eras.push({ startYear: startYr, endYear: years[years.length-1], volume: prevVol });
+      }
+      
+      return {
+        lifetime: {
+          totalFlights, totalDistance, totalDuration, totalEqm,
+          uniqueAirports: airports.size, uniqueCountries: countries.size,
+          intlFlights, upgrades, avgDistance: totalFlights ? Math.round(totalDistance / totalFlights) : 0,
+          cabins, loungeVisits: loungeVisits?.length || 0
+        },
+        annual, monthly, topRoutes, statusHistory,
+        millionMiler: { level: mmLevel, total: totalEqm, progress: mmProgress },
+        swu: swuTotals, lounge: { total: loungeVisits?.length || 0, topLounges, flagshipVisits },
+        eras, profile,
+        years: Object.keys(annual).sort()
+      };
+    }
+
+
+    // ================================================================
+    // RENDERING FUNCTIONS
+    // ================================================================
+    function renderDashboard() {
+      const stats = allStats;
+      const lt = stats.lifetime;
+      
+      // Profile
+      if (stats.profile?.firstName) {
+        document.getElementById('user-name').textContent = `${stats.profile.firstName}'s Journey`;
+      }
+      document.getElementById('user-status').textContent = stats.profile?.statusTier || 'Member';
+      document.getElementById('user-mm').textContent = stats.millionMiler.level ? `${stats.millionMiler.level}MM` : '';
+      
+      // Date range
+      const years = stats.years;
+      if (years.length) {
+        document.getElementById('date-range').textContent = `${years[0]} – ${years[years.length-1]}`;
+        document.getElementById('years-count').textContent = years.length;
+      }
+      
+      // Main stats
+      document.getElementById('stat-flights').textContent = formatNumber(lt.totalFlights);
+      document.getElementById('stat-miles').textContent = formatCompact(lt.totalDistance);
+      document.getElementById('stat-airports').textContent = lt.uniqueAirports;
+      document.getElementById('stat-countries').textContent = lt.uniqueCountries;
+      
+      // Secondary stats
+      document.getElementById('stat-hours').textContent = formatNumber(Math.round(lt.totalDuration));
+      document.getElementById('stat-eqm').textContent = formatCompact(lt.totalEqm);
+      document.getElementById('stat-upgrades').textContent = lt.upgrades;
+      document.getElementById('stat-intl').textContent = lt.totalFlights ? Math.round(lt.intlFlights / lt.totalFlights * 100) + '%' : '0%';
+      document.getElementById('stat-lounge').textContent = lt.loungeVisits;
+      document.getElementById('stat-avg-distance').textContent = formatNumber(lt.avgDistance) + ' mi';
+      
+      // Year selector
+      renderYearSelector(years);
+      
+      // Charts
+      renderFlightsByYearChart();
+      renderTopRoutes();
+      renderCabinChart();
+      renderMonthlyChart();
+      
+      // Map
+      renderRouteMap();
+      
+      // Loyalty
+      renderMillionMiler();
+      renderStatusTimeline();
+      renderSWU();
+      
+      // Year cards
+      renderYearCards();
+      
+      // Eras
+      renderEras();
+      
+      // Lounge
+      renderLounge();
+      
+      // Insights
+      renderInsights();
+    }
+
+    function renderYearSelector(years) {
+      const container = document.getElementById('year-selector');
+      let html = '<button class="year-pill px-4 py-1.5 rounded-full text-sm font-medium active" data-year="all">All Time</button>';
+      
+      // Show last 5 years
+      const recentYears = years.slice(-5);
+      recentYears.forEach(yr => {
+        html += `<button class="year-pill px-4 py-1.5 rounded-full text-sm font-medium" data-year="${yr}">${yr}</button>`;
+      });
+      
+      container.innerHTML = html;
+      
+      container.querySelectorAll('.year-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.year-pill').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedYear = btn.dataset.year;
+          // Could filter data here for year-specific views
+        });
+      });
+    }
+
+    function renderFlightsByYearChart() {
+      const ctx = document.getElementById('flights-by-year-chart').getContext('2d');
+      const years = Object.keys(allStats.annual).sort();
+      const data = years.map(y => allStats.annual[y].flights);
+      
+      if (charts.flightsYear) charts.flightsYear.destroy();
+      
+      charts.flightsYear = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: years,
+          datasets: [{
+            data: data,
+            backgroundColor: years.map(y => {
+              const s = allStats.statusHistory[y]?.status;
+              if (s === 'Executive Platinum') return '#8B5CF6';
+              if (s === 'Platinum Pro') return '#60A5FA';
+              if (s === 'Platinum') return '#94A3B8';
+              if (s === 'Gold') return '#D4AF37';
+              return '#0078D2';
+            }),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF' } },
+            x: { grid: { display: false }, ticks: { color: '#9CA3AF' } }
+          }
+        }
+      });
+    }
+
+    function renderTopRoutes() {
+      const container = document.getElementById('top-routes');
+      const routes = allStats.topRoutes.slice(0, 8);
+      const maxCount = routes[0]?.count || 1;
+      
+      container.innerHTML = routes.map(r => `
+        <div class="flex items-center gap-3">
+          <div class="w-16 text-sm font-mono text-gray-400">${r.route}</div>
+          <div class="flex-1 h-6 bg-dark-600 rounded overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-aa-blue to-aa-red rounded" style="width: ${r.count / maxCount * 100}%"></div>
+          </div>
+          <div class="w-8 text-right text-sm">${r.count}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderCabinChart() {
+      const ctx = document.getElementById('cabin-chart').getContext('2d');
+      const cabins = allStats.lifetime.cabins;
+      
+      if (charts.cabin) charts.cabin.destroy();
+      
+      charts.cabin = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['First', 'Business', 'Premium Econ', 'Economy'],
+          datasets: [{
+            data: [cabins.F, cabins.C, cabins.W, cabins.Y],
+            backgroundColor: ['#D4AF37', '#8B5CF6', '#60A5FA', '#0078D2'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: '#9CA3AF', padding: 10, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderMonthlyChart() {
+      const ctx = document.getElementById('monthly-chart').getContext('2d');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      if (charts.monthly) charts.monthly.destroy();
+      
+      charts.monthly = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [{
+            data: allStats.monthly,
+            backgroundColor: '#0078D2',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF' } },
+            x: { grid: { display: false }, ticks: { color: '#9CA3AF' } }
+          }
+        }
+      });
+    }
+
+
+    // ================================================================
+    // ROUTE MAP
+    // ================================================================
+    let map = null;
+    
+    function renderRouteMap() {
+      if (map) map.remove();
+      
+      map = L.map('route-map', {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([30, -40], 2);
+      
+      // Dark map tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(map);
+      
+      // Route lines with frequency weighting
+      const routeCounts = {};
+      allFlights.forEach(f => {
+        if (!f.origin || !f.destination) return;
+        const key = [f.origin, f.destination].sort().join('-');
+        routeCounts[key] = (routeCounts[key] || 0) + 1;
+      });
+      
+      const maxCount = Math.max(...Object.values(routeCounts));
+      
+      Object.entries(routeCounts).forEach(([route, count]) => {
+        const [orig, dest] = route.split('-');
+        const origApt = getAirport(orig);
+        const destApt = getAirport(dest);
+        
+        if (origApt.lat && destApt.lat) {
+          const weight = Math.max(1, Math.min(5, 1 + Math.log2(count)));
+          const opacity = 0.3 + (count / maxCount) * 0.5;
+          
+          L.polyline(
+            [[origApt.lat, origApt.lon], [destApt.lat, destApt.lon]],
+            { color: '#0078D2', weight, opacity, className: 'route-line' }
+          ).addTo(map);
+        }
+      });
+      
+      // Airport markers
+      const airportVisits = {};
+      allFlights.forEach(f => {
+        if (f.origin) airportVisits[f.origin] = (airportVisits[f.origin] || 0) + 1;
+        if (f.destination) airportVisits[f.destination] = (airportVisits[f.destination] || 0) + 1;
+      });
+      
+      Object.entries(airportVisits).forEach(([code, visits]) => {
+        const apt = getAirport(code);
+        if (apt.lat) {
+          const radius = Math.min(4 + Math.log2(visits) * 1.5, 10);
+          L.circleMarker([apt.lat, apt.lon], {
+            radius,
+            fillColor: '#C8102E',
+            color: '#fff',
+            weight: 1,
+            fillOpacity: 0.8
+          }).bindPopup(`
+            <div style="text-align:center">
+              <strong>${code}</strong><br>
+              ${apt.city || ''}<br>
+              <span style="color:#666">${visits} visits</span>
+            </div>
+          `).addTo(map);
+        }
+      });
+      
+      // Zoom controls
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+
+    // ================================================================
+    // LOYALTY SECTION
+    // ================================================================
+    function renderMillionMiler() {
+      const mm = allStats.millionMiler;
+      document.getElementById('mm-level').textContent = mm.level ? `${mm.level}MM` : '0MM';
+      document.getElementById('mm-total').textContent = formatNumber(mm.total) + ' EQM';
+      
+      const progressPct = mm.level >= 4 ? 100 : (mm.progress / 1000000) * 100;
+      document.getElementById('mm-progress-bar').style.width = progressPct + '%';
+      
+      document.getElementById('mm-current-level').textContent = mm.level + 'MM';
+      document.getElementById('mm-next-level').textContent = (mm.level + 1) + 'MM';
+      document.getElementById('mm-progress-text').textContent = 
+        `${formatNumber(mm.progress)} / 1,000,000 to ${mm.level + 1}MM`;
+    }
+
+    function renderStatusTimeline() {
+      const container = document.getElementById('status-timeline');
+      const years = Object.keys(allStats.statusHistory).sort();
+      
+      const statusColors = {
+        'Executive Platinum': 'bg-aa-executive',
+        'Platinum Pro': 'bg-blue-400',
+        'Platinum': 'bg-gray-400',
+        'Gold': 'bg-aa-gold',
+        'Member': 'bg-gray-600'
+      };
+      
+      let html = '<div class="flex flex-wrap gap-2">';
+      years.forEach(yr => {
+        const s = allStats.statusHistory[yr];
+        const color = statusColors[s.status] || 'bg-gray-600';
+        const abbrev = {
+          'Executive Platinum': 'EP',
+          'Platinum Pro': 'PP',
+          'Platinum': 'PL',
+          'Gold': 'GD',
+          'Member': '—'
+        }[s.status] || '—';
+        
+        html += `
+          <div class="text-center">
+            <div class="${color} w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold mb-1">${abbrev}</div>
+            <div class="text-xs text-gray-500">${yr}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderSWU() {
+      const swu = allStats.swu;
+      document.getElementById('swu-earned').textContent = swu.earned;
+      document.getElementById('swu-used').textContent = swu.used;
+      document.getElementById('swu-expired').textContent = swu.expired;
+      document.getElementById('swu-available').textContent = swu.available;
+    }
+
+    // ================================================================
+    // YEAR CARDS
+    // ================================================================
+    function renderYearCards() {
+      const container = document.getElementById('year-cards');
+      const years = Object.keys(allStats.annual).sort().reverse();
+      
+      const statusColors = {
+        'Executive Platinum': 'border-aa-executive',
+        'Platinum Pro': 'border-blue-400',
+        'Platinum': 'border-gray-400',
+        'Gold': 'border-aa-gold',
+        'Member': 'border-gray-600'
+      };
+      
+      container.innerHTML = years.map(yr => {
+        const data = allStats.annual[yr];
+        const status = allStats.statusHistory[yr]?.status || 'Member';
+        const borderColor = statusColors[status] || 'border-gray-600';
+        
+        return `
+          <div class="glass-card p-6 border-l-4 ${borderColor}">
+            <div class="flex justify-between items-start mb-4">
+              <div class="text-2xl font-bold">${yr}</div>
+              <div class="text-sm text-gray-400">${status}</div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div class="text-2xl font-semibold">${data.flights}</div>
+                <div class="text-gray-500">Flights</div>
+              </div>
+              <div>
+                <div class="text-2xl font-semibold">${formatCompact(data.distance)}</div>
+                <div class="text-gray-500">Miles</div>
+              </div>
+              <div>
+                <div class="text-2xl font-semibold">${formatCompact(data.eqm)}</div>
+                <div class="text-gray-500">EQM</div>
+              </div>
+              <div>
+                <div class="text-2xl font-semibold">${data.intl}</div>
+                <div class="text-gray-500">Intl Flights</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ================================================================
+    // TRAVEL ERAS
+    // ================================================================
+    function renderEras() {
+      const container = document.getElementById('era-timeline');
+      const eras = allStats.eras;
+      
+      if (!eras.length) {
+        container.innerHTML = '<p class="text-gray-500">Not enough data to detect travel eras</p>';
+        return;
+      }
+      
+      const volumeColors = {
+        'high': 'bg-gradient-to-r from-aa-blue to-aa-executive',
+        'moderate': 'bg-gradient-to-r from-aa-blue to-blue-400',
+        'low': 'bg-dark-500'
+      };
+      
+      const volumeLabels = {
+        'high': 'Road Warrior Era',
+        'moderate': 'Active Traveler Era',
+        'low': 'Occasional Traveler Era'
+      };
+      
+      container.innerHTML = eras.map((era, i) => `
+        <div class="glass-card p-6 flex items-center gap-6">
+          <div class="w-20 h-20 rounded-xl ${volumeColors[era.volume]} flex items-center justify-center">
+            <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l-7-7 7-7M19 12H5" transform="rotate(-45 12 12)"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="text-lg font-semibold mb-1">${volumeLabels[era.volume]}</div>
+            <div class="text-gray-400">${era.startYear} – ${era.endYear}</div>
+          </div>
+          <div class="text-right text-sm text-gray-500">
+            ${parseInt(era.endYear) - parseInt(era.startYear) + 1} years
+          </div>
+        </div>
+      `).join('');
+    }
+
+
+    // ================================================================
+    // LOUNGE SECTION
+    // ================================================================
+    function renderLounge() {
+      const lounge = allStats.lounge;
+      document.getElementById('lounge-total').textContent = lounge.total;
+      
+      const years = allStats.years.length || 1;
+      document.getElementById('lounge-avg').textContent = Math.round(lounge.total / years * 10) / 10;
+      document.getElementById('lounge-value').textContent = '$' + formatNumber(lounge.total * 50);
+      document.getElementById('lounge-flagship').textContent = lounge.flagshipVisits;
+      
+      const container = document.getElementById('lounge-locations');
+      container.innerHTML = lounge.topLounges.slice(0, 8).map(l => {
+        const apt = getAirport(l.airport);
+        return `
+          <div class="flex items-center justify-between p-3 glass-card-light">
+            <div>
+              <div class="font-semibold">${l.airport}</div>
+              <div class="text-sm text-gray-500">${apt.city || ''}</div>
+            </div>
+            <div class="text-xl font-bold">${l.visits}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ================================================================
+    // INSIGHTS
+    // ================================================================
+    function renderInsights() {
+      const lt = allStats.lifetime;
+      const years = allStats.years;
+      
+      // Milestones
+      const milestones = [];
+      if (lt.totalFlights >= 100) milestones.push({ icon: '✈️', text: `${lt.totalFlights} lifetime flights` });
+      if (lt.uniqueCountries >= 10) milestones.push({ icon: '🌍', text: `${lt.uniqueCountries} countries visited` });
+      if (lt.totalDistance >= 500000) milestones.push({ icon: '🚀', text: `${formatCompact(lt.totalDistance)} miles flown` });
+      if (allStats.millionMiler.level >= 1) milestones.push({ icon: '💎', text: `${allStats.millionMiler.level}x Million Miler` });
+      if (lt.upgrades >= 10) milestones.push({ icon: '⬆️', text: `${lt.upgrades} complimentary upgrades` });
+      
+      document.getElementById('milestones-list').innerHTML = milestones.map(m => `
+        <div class="flex items-center gap-3 p-3 glass-card-light">
+          <span class="text-2xl">${m.icon}</span>
+          <span>${m.text}</span>
+        </div>
+      `).join('') || '<p class="text-gray-500">Keep flying to unlock milestones!</p>';
+      
+      // Fun facts
+      const funFacts = [];
+      const circumferences = lt.totalDistance / 24901; // Earth's circumference
+      if (circumferences >= 1) funFacts.push({ icon: '🌎', text: `Flown around Earth ${Math.round(circumferences * 10) / 10}x` });
+      
+      const moonTrips = lt.totalDistance / 238900; // Distance to Moon
+      if (moonTrips >= 0.5) funFacts.push({ icon: '🌙', text: `${Math.round(moonTrips * 100)}% of the way to the Moon` });
+      
+      funFacts.push({ icon: '⏱️', text: `${Math.round(lt.totalDuration / 24)} days spent in the air` });
+      
+      const avgPerYear = years.length ? Math.round(lt.totalFlights / years.length) : 0;
+      funFacts.push({ icon: '📊', text: `Average ${avgPerYear} flights per year` });
+      
+      const busiestMonth = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][
+        allStats.monthly.indexOf(Math.max(...allStats.monthly))
+      ];
+      funFacts.push({ icon: '📅', text: `Busiest month: ${busiestMonth}` });
+      
+      document.getElementById('fun-facts').innerHTML = funFacts.map(f => `
+        <div class="flex items-center gap-3 p-3 glass-card-light">
+          <span class="text-2xl">${f.icon}</span>
+          <span>${f.text}</span>
+        </div>
+      `).join('');
+    }
+
+    // ================================================================
+    // FILE HANDLING
+    // ================================================================
+    const loadedFiles = {
+      flight_records: null,
+      account_activity: null,
+      admirals_club: null,
+      account_profile: null
+    };
+
+    function handleFiles(files) {
+      const statusContainer = document.getElementById('file-status');
+      statusContainer.classList.remove('hidden');
+      
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            const type = detectFileType(data);
+            
+            if (type === 'unknown') {
+              showFileStatus(file.name, 'error', 'Unknown format');
+              return;
+            }
+            
+            loadedFiles[type] = data;
+            showFileStatus(file.name, 'success', type.replace(/_/g, ' '));
+            
+            await checkAndProcess();
+          } catch (err) {
+            showFileStatus(file.name, 'error', 'Invalid JSON');
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function showFileStatus(name, status, msg) {
+      const container = document.getElementById('file-status');
+      const cls = status === 'success' ? 'text-green-400' : 'text-red-400';
+      const icon = status === 'success' ? '✓' : '✗';
+      
+      const item = document.createElement('div');
+      item.className = 'flex items-center gap-2 text-sm';
+      item.innerHTML = `<span class="${cls}">${icon}</span><span>${name}</span><span class="text-gray-500">(${msg})</span>`;
+      container.appendChild(item);
+    }
+
+    async function checkAndProcess() {
+      if (!loadedFiles.flight_records && !loadedFiles.account_activity) return;
+      await processData();
+    }
+
+    async function processData() {
+      // Parse
+      const pnrFlights = loadedFiles.flight_records ? parseFlightRecords(loadedFiles.flight_records) : [];
+      let flightActivity = [], swuCerts = [];
+      if (loadedFiles.account_activity) {
+        const act = parseAccountActivity(loadedFiles.account_activity);
+        flightActivity = act.flightActivity;
+        swuCerts = act.swuCerts;
+      }
+      const loungeVisits = loadedFiles.admirals_club ? parseAdmiralsClub(loadedFiles.admirals_club) : [];
+      const profile = loadedFiles.account_profile ? parseAccountProfile(loadedFiles.account_profile) : null;
+      
+      // Load airports
+      const allCodes = new Set();
+      pnrFlights.forEach(f => { if (f.origin) allCodes.add(f.origin); if (f.destination) allCodes.add(f.destination); });
+      flightActivity.forEach(f => { if (f.origin) allCodes.add(f.origin); if (f.destination) allCodes.add(f.destination); });
+      await loadAirportsForCodes([...allCodes]);
+      
+      // Merge and calculate
+      allFlights = mergeFlightData(pnrFlights, flightActivity);
+      allStats = calculateStats(allFlights, loungeVisits, swuCerts, profile);
+      
+      // Show dashboard
+      document.getElementById('upload-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      
+      renderDashboard();
+    }
+
+    // ================================================================
+    // EXPORT
+    // ================================================================
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const exportData = {
+        stats: allStats,
+        generatedAt: new Date().toISOString(),
+        flightCount: allFlights.length
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `aadvantage-insights-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    });
+
+    // ================================================================
+    // EVENT LISTENERS
+    // ================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('file-input');
+      const uploadZone = document.getElementById('upload-zone');
+      
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFiles(e.target.files);
+      });
+      
+      uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+      });
+      
+      uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+      });
+      
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+      });
+    });
+  </script>
+</body>
+</html>

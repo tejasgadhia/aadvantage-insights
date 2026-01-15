@@ -5,9 +5,11 @@
 .vscode/
 .idea/
 
-# Source data files (keep private)
+# Source data files (user's personal AA data - keep private)
 source-data/
-*.json
 
 # Logs
 *.log
+
+# Local testing
+test-local.html

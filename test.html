@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAdvantage Insights - Test Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/renderjson@1.4.0/renderjson.min.js"></script>
+    <style>
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .log-info { color: #2563eb; }
+        .log-warn { color: #d97706; }
+        .log-error { color: #dc2626; }
+        .log-success { color: #16a34a; }
+        /* renderjson dark theme */
+        .renderjson a { color: #9ca3af; text-decoration: none; }
+        .renderjson .disclosure { color: #6b7280; font-size: 12px; }
+        .renderjson .syntax { color: #9ca3af; }
+        .renderjson .string { color: #34d399; }
+        .renderjson .number { color: #60a5fa; }
+        .renderjson .boolean { color: #f472b6; }
+        .renderjson .key { color: #c4b5fd; }
+        .renderjson .keyword { color: #fb923c; }
+        .renderjson .object.syntax { color: #9ca3af; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 p-6 font-mono text-sm">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-2xl font-bold text-blue-400">AAdvantage Insights - Test Console</h1>
+            <p class="text-gray-500">Phase 1 Data Validation</p>
+        </header>
+
+        <!-- File Upload -->
+        <div class="mb-6 p-4 bg-gray-800 rounded border border-gray-700">
+            <input type="file" id="file-input" multiple accept=".json" class="mb-3">
+            
+            <!-- Upload Progress -->
+            <div id="upload-progress" class="hidden mb-3">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Uploading files...</span>
+                    <span id="upload-percent">0%</span>
+                </div>
+                <div class="h-2 bg-gray-700 rounded overflow-hidden">
+                    <div id="upload-bar" class="h-full bg-blue-500 transition-all duration-150" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <!-- Processing Progress -->
+            <div id="processing-progress" class="hidden mb-3">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                    <span id="processing-status">Processing...</span>
+                    <span id="processing-percent">0%</span>
+                </div>
+                <div class="h-2 bg-gray-700 rounded overflow-hidden">
+                    <div id="processing-bar" class="h-full bg-green-500 transition-all duration-150" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div id="file-status" class="text-gray-400 text-sm"></div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div id="quick-stats" class="hidden mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-4 bg-gray-800 rounded border border-gray-700">
+                <div class="text-gray-500 text-xs">FLIGHTS</div>
+                <div id="stat-flights" class="text-2xl font-bold text-blue-400">-</div>
+            </div>
+            <div class="p-4 bg-gray-800 rounded border border-gray-700">
+                <div class="text-gray-500 text-xs">AIRPORTS</div>
+                <div id="stat-airports" class="text-2xl font-bold text-blue-400">-</div>
+            </div>
+            <div class="p-4 bg-gray-800 rounded border border-gray-700">
+                <div class="text-gray-500 text-xs">MISSING AIRPORTS</div>
+                <div id="stat-missing" class="text-2xl font-bold text-yellow-400">-</div>
+            </div>
+            <div class="p-4 bg-gray-800 rounded border border-gray-700">
+                <div class="text-gray-500 text-xs">CONNECTIONS</div>
+                <div id="stat-connections" class="text-2xl font-bold text-green-400">-</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-4 flex gap-2">
+            <button onclick="showTab('log')" class="tab-btn px-4 py-2 bg-gray-700 rounded hover:bg-gray-600" data-tab="log">Console Log</button>
+            <button onclick="showTab('flights')" class="tab-btn px-4 py-2 bg-gray-800 rounded hover:bg-gray-600" data-tab="flights">Flights</button>
+            <button onclick="showTab('airports')" class="tab-btn px-4 py-2 bg-gray-800 rounded hover:bg-gray-600" data-tab="airports">Airports</button>
+            <button onclick="showTab('connections')" class="tab-btn px-4 py-2 bg-gray-800 rounded hover:bg-gray-600" data-tab="connections">Connections</button>
+            <button onclick="showTab('stats')" class="tab-btn px-4 py-2 bg-gray-800 rounded hover:bg-gray-600" data-tab="stats">Raw Stats</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-log" class="tab-content p-4 bg-gray-800 rounded border border-gray-700 max-h-[600px] overflow-auto">
+            <pre id="console-log">Waiting for files...</pre>
+        </div>
+        <div id="tab-flights" class="tab-content hidden p-4 bg-gray-800 rounded border border-gray-700 max-h-[600px] overflow-auto">
+            <div id="flights-data" class="text-gray-400">No data</div>
+        </div>
+        <div id="tab-airports" class="tab-content hidden p-4 bg-gray-800 rounded border border-gray-700 max-h-[600px] overflow-auto">
+            <div id="airports-data" class="text-gray-400">No data</div>
+        </div>
+        <div id="tab-connections" class="tab-content hidden p-4 bg-gray-800 rounded border border-gray-700 max-h-[600px] overflow-auto">
+            <div id="connections-data" class="text-gray-400">No data</div>
+        </div>
+        <div id="tab-stats" class="tab-content hidden p-4 bg-gray-800 rounded border border-gray-700 max-h-[600px] overflow-auto">
+            <div id="stats-data" class="text-gray-400">No data</div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Tab switching
+        function showTab(name) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-gray-700'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.add('bg-gray-800'));
+            document.getElementById('tab-' + name).classList.remove('hidden');
+            document.querySelector(`[data-tab="${name}"]`).classList.remove('bg-gray-800');
+            document.querySelector(`[data-tab="${name}"]`).classList.add('bg-gray-700');
+        }
+
+        // Console logging
+        const logEl = document.getElementById('console-log');
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<span class="log-${type}">[${time}] ${msg}</span>\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // Override processData to add test outputs
+        const originalProcessData = window.processData;
+        window.processData = async function() {
+            log('Starting data processing...', 'info');
+            
+            // Parse files
+            const flightsFromPnr = loadedFiles.flight_records ? parseFlightRecords(loadedFiles.flight_records) : [];
+            log(`Parsed ${flightsFromPnr.length} flights from PNR records`, 'info');
+
+            let flightActivity = [], partnerActivity = [], redemptions = [], swuCertificates = [];
+            if (loadedFiles.account_activity) {
+                const activityData = parseAccountActivity(loadedFiles.account_activity);
+                flightActivity = activityData.flightActivity;
+                partnerActivity = activityData.partnerActivity;
+                redemptions = activityData.redemptions;
+                swuCertificates = activityData.swuCertificates;
+                log(`Parsed ${flightActivity.length} flight activities, ${partnerActivity.length} partner activities`, 'info');
+            }
+
+            const loungeVisits = loadedFiles.admirals_club ? normalizeLoungeVisits(parseAdmiralsClub(loadedFiles.admirals_club)) : [];
+            log(`Parsed ${loungeVisits.length} lounge visits`, 'info');
+
+            const profile = loadedFiles.account_profile ? parseAccountProfile(loadedFiles.account_profile) : null;
+            if (profile) log(`Profile: ${profile.firstName} ${profile.lastName} - ${profile.statusTier}`, 'success');
+
+            // Extract all unique airport codes
+            const allAirportCodes = new Set();
+            flightsFromPnr.forEach(f => {
+                if (f.origin) allAirportCodes.add(f.origin.toUpperCase());
+                if (f.destination) allAirportCodes.add(f.destination.toUpperCase());
+            });
+            flightActivity.forEach(f => {
+                if (f.origin) allAirportCodes.add(f.origin.toUpperCase());
+                if (f.destination) allAirportCodes.add(f.destination.toUpperCase());
+            });
+            log(`Found ${allAirportCodes.size} unique airports in data`, 'info');
+
+            // Load airport data for only the airports in the user's data
+            log('Loading airport database...', 'info');
+            const airportResult = await loadAirportsForCodes([...allAirportCodes]);
+            log(`Loaded ${airportResult.loaded.length} airports from database`, 'success');
+            if (airportResult.missing.length > 0) {
+                log(`Missing from database: ${airportResult.missing.join(', ')}`, 'warn');
+            }
+
+            // Merge flights (now with airport data available)
+            const flights = mergeFlightData(flightsFromPnr, flightActivity);
+            log(`Merged into ${flights.length} unified flights`, 'success');
+
+            // Check airport coverage
+            const airportCheck = checkAirportCoverage(flights);
+            log(`Airport coverage: ${airportCheck.found}/${airportCheck.total}`, 
+                airportCheck.missing.length > 0 ? 'warn' : 'success');
+
+            // Detect connections
+            const connections = detectConnections(flights);
+            log(`Detected ${connections.length} connections (multi-segment trips)`, 'info');
+
+            // Calculate stats
+            const stats = calculateStats(flights, loungeVisits, partnerActivity, redemptions, swuCertificates, profile);
+            log(`Stats calculated successfully`, 'success');
+
+            // Update quick stats
+            document.getElementById('quick-stats').classList.remove('hidden');
+            document.getElementById('stat-flights').textContent = flights.length;
+            document.getElementById('stat-airports').textContent = airportCheck.found;
+            document.getElementById('stat-missing').textContent = airportCheck.missing.length;
+            document.getElementById('stat-connections').textContent = connections.length;
+
+            // Populate tabs with renderjson
+            renderjson.set_show_to_level(1); // Collapse after 1 level by default
+            renderjson.set_icons('▶ ', '▼ ');
+            
+            const flightsEl = document.getElementById('flights-data');
+            flightsEl.innerHTML = '';
+            flightsEl.appendChild(renderjson(flights.slice(0, 50)));
+            if (flights.length > 50) {
+                const note = document.createElement('p');
+                note.className = 'text-gray-500 mt-4';
+                note.textContent = `... and ${flights.length - 50} more flights`;
+                flightsEl.appendChild(note);
+            }
+            
+            const airportsEl = document.getElementById('airports-data');
+            airportsEl.innerHTML = '<p class="text-gray-400 mb-2">Airports loaded for this dataset:</p>';
+            airportsEl.appendChild(renderjson({
+                loaded: airportResult.loaded.sort(),
+                missing: airportResult.missing,
+                totalInData: allAirportCodes.size
+            }));
+            
+            const connectionsEl = document.getElementById('connections-data');
+            connectionsEl.innerHTML = '';
+            if (connections.length > 0) {
+                connectionsEl.appendChild(renderjson(connections.slice(0, 30)));
+            } else {
+                connectionsEl.innerHTML = '<p class="text-gray-500">No connections detected</p>';
+            }
+            
+            const statsEl = document.getElementById('stats-data');
+            statsEl.innerHTML = '';
+            statsEl.appendChild(renderjson(stats));
+
+            // Store globally
+            window.aadvantageData = { flights, loungeVisits, stats, connections, airportCheck };
+            log('Data available at window.aadvantageData', 'info');
+        };
+
+        // File handling with progress
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+            
+            const uploadProgress = document.getElementById('upload-progress');
+            const uploadBar = document.getElementById('upload-bar');
+            const uploadPercent = document.getElementById('upload-percent');
+            const processingProgress = document.getElementById('processing-progress');
+            const processingBar = document.getElementById('processing-bar');
+            const processingPercent = document.getElementById('processing-percent');
+            const processingStatus = document.getElementById('processing-status');
+            
+            uploadProgress.classList.remove('hidden');
+            processingProgress.classList.add('hidden');
+            document.getElementById('file-status').textContent = '';
+            
+            let filesLoaded = 0;
+            const totalFiles = files.length;
+            
+            log(`Loading ${totalFiles} file(s)...`, 'info');
+            
+            files.forEach(file => {
+                const reader = new FileReader();
+                
+                reader.onprogress = (evt) => {
+                    if (evt.lengthComputable) {
+                        const fileProgress = (filesLoaded / totalFiles) + (evt.loaded / evt.total / totalFiles);
+                        const pct = Math.round(fileProgress * 100);
+                        uploadBar.style.width = pct + '%';
+                        uploadPercent.textContent = pct + '%';
+                    }
+                };
+                
+                reader.onload = (evt) => {
+                    filesLoaded++;
+                    const pct = Math.round((filesLoaded / totalFiles) * 100);
+                    uploadBar.style.width = pct + '%';
+                    uploadPercent.textContent = pct + '%';
+                    
+                    try {
+                        const data = JSON.parse(evt.target.result);
+                        const fileType = detectFileType(data);
+                        
+                        if (fileType === 'unknown') {
+                            log(`${file.name}: Unknown format`, 'error');
+                            return;
+                        }
+                        
+                        loadedFiles[fileType] = data;
+                        log(`${file.name}: ${fileType.replace(/_/g, ' ')}`, 'success');
+                        
+                    } catch (err) {
+                        log(`${file.name}: Invalid JSON - ${err.message}`, 'error');
+                    }
+                    
+                    // All files loaded - start processing
+                    if (filesLoaded === totalFiles) {
+                        uploadProgress.classList.add('hidden');
+                        
+                        if (loadedFiles.flight_records || loadedFiles.account_activity) {
+                            processingProgress.classList.remove('hidden');
+                            
+                            // Simulate progress steps (actual processing is fast)
+                            const steps = [
+                                { pct: 10, msg: 'Parsing flight records...' },
+                                { pct: 30, msg: 'Parsing account activity...' },
+                                { pct: 50, msg: 'Merging flight data...' },
+                                { pct: 70, msg: 'Checking airport coverage...' },
+                                { pct: 85, msg: 'Detecting connections...' },
+                                { pct: 95, msg: 'Calculating statistics...' },
+                                { pct: 100, msg: 'Complete!' }
+                            ];
+                            
+                            let stepIndex = 0;
+                            const runStep = () => {
+                                if (stepIndex < steps.length) {
+                                    const step = steps[stepIndex];
+                                    processingBar.style.width = step.pct + '%';
+                                    processingPercent.textContent = step.pct + '%';
+                                    processingStatus.textContent = step.msg;
+                                    stepIndex++;
+                                    
+                                    if (stepIndex === steps.length) {
+                                        // Actually process on final step
+                                        setTimeout(() => {
+                                            processData();
+                                            document.getElementById('file-status').textContent = 'Processing complete. Check tabs for results.';
+                                        }, 100);
+                                    } else {
+                                        setTimeout(runStep, 80);
+                                    }
+                                }
+                            };
+                            
+                            setTimeout(runStep, 50);
+                        } else {
+                            document.getElementById('file-status').textContent = 'Need Flight Records or Account Activity file to proceed.';
+                            log('Missing required files (Flight Records or Account Activity)', 'warn');
+                        }
+                    }
+                };
+                
+                reader.readAsText(file);
+            });
+        });
+    </script>
+</body>
+</html>

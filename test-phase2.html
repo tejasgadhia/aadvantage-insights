@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAdvantage Insights - Phase 2 Stats Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .stats-section { @apply bg-white rounded-lg shadow p-6 mb-6; }
+    .stats-grid { @apply grid grid-cols-2 md:grid-cols-4 gap-4; }
+    .stat-card { @apply bg-gray-50 rounded p-4 text-center; }
+    .stat-value { @apply text-2xl font-bold text-blue-600; }
+    .stat-label { @apply text-sm text-gray-600; }
+    pre { @apply bg-gray-900 text-green-400 p-4 rounded overflow-auto text-xs; max-height: 400px; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">AAdvantage Insights</h1>
+      <p class="text-gray-600">Phase 2: Enhanced Statistics Engine Test</p>
+    </header>
+
+    <!-- File Upload -->
+    <div id="upload-section" class="stats-section">
+      <h2 class="text-xl font-semibold mb-4">Load Your AA Data</h2>
+      <input type="file" id="file-input" multiple accept=".json" class="block w-full text-sm text-gray-500
+        file:mr-4 file:py-2 file:px-4 file:rounded file:border-0
+        file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700
+        hover:file:bg-blue-100">
+      <div id="file-list" class="mt-4 hidden">
+        <p class="text-sm font-medium text-gray-700">Loaded Files:</p>
+        <div id="file-items" class="mt-2 space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="hidden">
+      <!-- Status History -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">📊 Status Tier History</h2>
+        <div id="status-history" class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-4 py-2 text-left">Year Earned</th>
+                <th class="px-4 py-2 text-left">Status</th>
+                <th class="px-4 py-2 text-right">EQM</th>
+                <th class="px-4 py-2 text-right">EQD</th>
+                <th class="px-4 py-2 text-left">Qualified By</th>
+              </tr>
+            </thead>
+            <tbody id="status-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Million Miler Progress -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">✈️ Million Miler Progress</h2>
+        <div class="stats-grid" id="mm-stats"></div>
+        <div id="mm-milestones" class="mt-4"></div>
+      </div>
+
+      <!-- Travel Eras -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">🗓️ Travel Eras</h2>
+        <div id="travel-eras"></div>
+      </div>
+
+      <!-- Seasonal Patterns -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">📅 Seasonal Patterns</h2>
+        <div id="seasonal-patterns"></div>
+      </div>
+
+      <!-- Year over Year -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">📈 Year-over-Year Trends</h2>
+        <div id="yoy-stats"></div>
+      </div>
+
+      <!-- Connection Analysis -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">🔗 Connection Analysis</h2>
+        <div id="connection-stats"></div>
+      </div>
+
+      <!-- Miles Efficiency -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">💰 Miles Earning Efficiency</h2>
+        <div id="miles-efficiency"></div>
+      </div>
+
+      <!-- Lounge ROI -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">🍸 Lounge ROI Analysis</h2>
+        <div id="lounge-roi"></div>
+      </div>
+
+      <!-- Booking Patterns -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">🎫 Booking Patterns</h2>
+        <div id="booking-patterns"></div>
+      </div>
+
+      <!-- Raw JSON Output -->
+      <div class="stats-section">
+        <h2 class="text-xl font-semibold mb-4">📄 Full Stats JSON</h2>
+        <button id="export-json" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Download stats.json
+        </button>
+        <button id="export-csv" class="mb-4 ml-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          Download flights.csv
+        </button>
+        <pre id="json-output"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load app.js first (contains parsers, normalizers) -->
+  <script src="js/app.js"></script>
+  
+  <!-- Phase 2 stats as inline to avoid module issues -->
+  <script>
+    // ========================================================================
+    // PHASE 2 STATISTICS - Inline to avoid ES module complexity
+    // ========================================================================
+
+    // Status tier inference
+    function inferStatusHistory(flights) {
+      const byYear = {};
+      for (const f of flights) {
+        if (!f.departureDate) continue;
+        const year = f.departureDate.slice(0, 4);
+        if (!byYear[year]) byYear[year] = { eqm: 0, eqd: 0, eqs: 0 };
+        byYear[year].eqm += f.eqm || 0;
+        byYear[year].eqd += f.eqd || 0;
+        byYear[year].eqs += f.eqs || 0;
+      }
+      
+      const statusHistory = {};
+      for (const [year, totals] of Object.entries(byYear)) {
+        let status = 'Member';
+        let qualifiedBy = null;
+        
+        if (totals.eqm >= 120000 || totals.eqd >= 18000) {
+          status = 'Executive Platinum';
+          qualifiedBy = totals.eqm >= 120000 ? 'EQM' : 'EQD';
+        } else if (totals.eqm >= 90000 || totals.eqd >= 14000) {
+          status = 'Platinum Pro';
+          qualifiedBy = totals.eqm >= 90000 ? 'EQM' : 'EQD';
+        } else if (totals.eqm >= 60000 || totals.eqd >= 9000) {
+          status = 'Platinum';
+          qualifiedBy = totals.eqm >= 60000 ? 'EQM' : 'EQD';
+        } else if (totals.eqm >= 30000 || totals.eqd >= 4000) {
+          status = 'Gold';
+          qualifiedBy = totals.eqm >= 30000 ? 'EQM' : 'EQD';
+        }
+        
+        statusHistory[year] = { status, qualifiedBy, eqm: totals.eqm, eqd: Math.round(totals.eqd * 100) / 100 };
+      }
+      return statusHistory;
+    }
+
+    // Million Miler progress
+    function calculateMillionMilerProgress(flights) {
+      const sorted = [...flights].filter(f => f.departureDate).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+      let cumulative = 0;
+      const milestones = [];
+      const levels = [1000000, 2000000, 3000000, 4000000];
+      const reached = new Set();
+      
+      for (const f of sorted) {
+        cumulative += f.eqm || 0;
+        for (const level of levels) {
+          if (cumulative >= level && !reached.has(level)) {
+            reached.add(level);
+            milestones.push({ level: level / 1000000, date: f.departureDate, flight: `${f.origin}-${f.destination}` });
+          }
+        }
+      }
+      
+      const currentLevel = Math.floor(cumulative / 1000000);
+      const progress = cumulative % 1000000;
+      
+      return {
+        currentLevel,
+        totalLifetimeEqm: cumulative,
+        progressToNext: { current: progress, needed: 1000000 - progress, percentage: Math.round(progress / 10000) },
+        milestones
+      };
+    }
+
+    // Year over year
+    function calculateYearOverYear(flights) {
+      const byYear = {};
+      for (const f of flights) {
+        if (!f.departureDate) continue;
+        const year = f.departureDate.slice(0, 4);
+        if (!byYear[year]) byYear[year] = { flights: 0, distance: 0, eqm: 0, intl: 0 };
+        byYear[year].flights++;
+        byYear[year].distance += f.distanceMiles || 0;
+        byYear[year].eqm += f.eqm || 0;
+        if (f.international) byYear[year].intl++;
+      }
+      
+      const years = Object.keys(byYear).sort();
+      const comparisons = [];
+      for (let i = 1; i < years.length; i++) {
+        const prev = byYear[years[i - 1]];
+        const curr = byYear[years[i]];
+        comparisons.push({
+          year: years[i],
+          flights: { current: curr.flights, previous: prev.flights, change: curr.flights - prev.flights },
+          distance: { current: curr.distance, previous: prev.distance, change: curr.distance - prev.distance }
+        });
+      }
+      
+      return { yearlyData: byYear, comparisons, busiestYear: years.reduce((max, y) => byYear[y].flights > (byYear[max]?.flights || 0) ? y : max, years[0]) };
+    }
+
+    // Travel Eras
+    function detectTravelEras(flights) {
+      const flown = flights.filter(f => f.departureDate);
+      if (flown.length < 20) return { eras: [], insufficient: true };
+      
+      const byYear = {};
+      for (const f of flown) {
+        const year = f.departureDate.slice(0, 4);
+        if (!byYear[year]) byYear[year] = { flights: 0, intl: 0, premium: 0, topAirports: {} };
+        byYear[year].flights++;
+        if (f.international) byYear[year].intl++;
+        if (['C', 'F'].includes(f.cabinFlown)) byYear[year].premium++;
+        if (f.origin) byYear[year].topAirports[f.origin] = (byYear[year].topAirports[f.origin] || 0) + 1;
+      }
+      
+      const years = Object.keys(byYear).sort();
+      const eras = [];
+      let startYear = years[0];
+      let prevVolume = byYear[years[0]].flights < 20 ? 'low' : byYear[years[0]].flights < 50 ? 'moderate' : 'high';
+      
+      for (let i = 1; i < years.length; i++) {
+        const currVolume = byYear[years[i]].flights < 20 ? 'low' : byYear[years[i]].flights < 50 ? 'moderate' : 'high';
+        
+        if (currVolume !== prevVolume) {
+          const topAirport = Object.entries(byYear[years[i-1]].topAirports).sort((a,b) => b[1] - a[1])[0]?.[0];
+          eras.push({ startYear, endYear: years[i - 1], volume: prevVolume, hub: topAirport });
+          startYear = years[i];
+          prevVolume = currVolume;
+        }
+      }
+      
+      const lastTop = Object.entries(byYear[years[years.length-1]].topAirports).sort((a,b) => b[1] - a[1])[0]?.[0];
+      eras.push({ startYear, endYear: years[years.length - 1], volume: prevVolume, hub: lastTop });
+      
+      return { eras, totalEras: eras.length };
+    }
+
+    // Seasonal patterns
+    function detectSeasonalPatterns(flights) {
+      const flown = flights.filter(f => f.departureDate);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthCounts = Array(12).fill(0);
+      
+      for (const f of flown) {
+        const month = parseInt(f.departureDate.slice(5, 7), 10) - 1;
+        monthCounts[month]++;
+      }
+      
+      const avg = flown.length / 12;
+      const peakMonths = monthNames.filter((_, i) => monthCounts[i] > avg * 1.25);
+      
+      return {
+        byMonth: Object.fromEntries(monthNames.map((m, i) => [m, monthCounts[i]])),
+        peakMonths,
+        busiestMonth: monthNames[monthCounts.indexOf(Math.max(...monthCounts))]
+      };
+    }
+
+    // Connection analysis
+    function analyzeConnections(flights) {
+      const sorted = [...flights].filter(f => f.departureDate).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+      let connections = 0;
+      const connectionAirports = {};
+      
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const curr = sorted[i];
+        const next = sorted[i + 1];
+        
+        if (curr.destination === next.origin) {
+          const d1 = new Date(curr.departureDate);
+          const d2 = new Date(next.departureDate);
+          if ((d2 - d1) / (1000 * 60 * 60 * 24) <= 1) {
+            connections++;
+            connectionAirports[curr.destination] = (connectionAirports[curr.destination] || 0) + 1;
+          }
+        }
+      }
+      
+      const topConnections = Object.entries(connectionAirports).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      return { totalConnections: connections, topConnectionAirports: topConnections.map(([a, c]) => ({ airport: a, count: c })) };
+    }
+
+    // Miles efficiency
+    function analyzeMilesEfficiency(flights) {
+      const flown = flights.filter(f => f.departureDate && f.distanceMiles > 0);
+      const totalDistance = flown.reduce((sum, f) => sum + (f.distanceMiles || 0), 0);
+      const totalBase = flown.reduce((sum, f) => sum + (f.baseMiles || 0), 0);
+      const totalBonus = flown.reduce((sum, f) => sum + (f.bonusMiles || 0), 0);
+      
+      return {
+        totalMilesFlown: totalDistance,
+        totalMilesEarned: totalBase + totalBonus,
+        earningRate: totalDistance ? Math.round((totalBase + totalBonus) / totalDistance * 100) / 100 : 0,
+        bonusRatio: totalBase ? Math.round(totalBonus / totalBase * 100) : 0
+      };
+    }
+
+    // Lounge ROI
+    function calculateLoungeROI(visits) {
+      if (!visits || !visits.length) return { insufficient: true, totalVisits: 0 };
+      
+      const totalVisits = visits.length;
+      const yearCount = new Set(visits.map(v => v.date?.slice(0, 4)).filter(Boolean)).size || 1;
+      const avgPerYear = Math.round(totalVisits / yearCount * 10) / 10;
+      const estimatedValue = totalVisits * 50; // $50 per visit estimate
+      
+      return { totalVisits, avgVisitsPerYear: avgPerYear, estimatedValue, paysOff: avgPerYear >= 7 };
+    }
+
+    // Booking patterns
+    function analyzeBookingPatterns(flights) {
+      const withBooking = flights.filter(f => f.bookingDate && f.departureDate);
+      if (!withBooking.length) return { insufficient: true };
+      
+      const leadTimes = withBooking.map(f => {
+        const book = new Date(f.bookingDate);
+        const dep = new Date(f.departureDate);
+        return Math.round((dep - book) / (1000 * 60 * 60 * 24));
+      }).filter(d => d >= 0 && d <= 365);
+      
+      if (!leadTimes.length) return { insufficient: true };
+      
+      const avg = Math.round(leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length);
+      const sorted = [...leadTimes].sort((a, b) => a - b);
+      
+      return { averageLeadDays: avg, medianLeadDays: sorted[Math.floor(sorted.length / 2)], totalAnalyzed: leadTimes.length };
+    }
+
+    // ========================================================================
+    // RENDER FUNCTIONS
+    // ========================================================================
+
+    function renderStatusHistory(statusHistory) {
+      const tbody = document.getElementById('status-table-body');
+      const years = Object.keys(statusHistory).sort();
+      
+      tbody.innerHTML = years.map(year => {
+        const s = statusHistory[year];
+        const statusClass = s.status === 'Executive Platinum' ? 'text-purple-600 font-bold' :
+                           s.status === 'Platinum Pro' ? 'text-blue-600 font-semibold' :
+                           s.status === 'Platinum' ? 'text-blue-500' :
+                           s.status === 'Gold' ? 'text-yellow-600' : 'text-gray-500';
+        return `<tr class="border-b">
+          <td class="px-4 py-2">${year}</td>
+          <td class="px-4 py-2 ${statusClass}">${s.status}</td>
+          <td class="px-4 py-2 text-right">${s.eqm.toLocaleString()}</td>
+          <td class="px-4 py-2 text-right">$${s.eqd.toLocaleString()}</td>
+          <td class="px-4 py-2">${s.qualifiedBy || '-'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderMillionMiler(mm) {
+      document.getElementById('mm-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-value">${mm.currentLevel}MM</div><div class="stat-label">Current Level</div></div>
+        <div class="stat-card"><div class="stat-value">${mm.totalLifetimeEqm.toLocaleString()}</div><div class="stat-label">Lifetime EQM</div></div>
+        <div class="stat-card"><div class="stat-value">${mm.progressToNext.percentage}%</div><div class="stat-label">Progress to ${mm.currentLevel + 1}MM</div></div>
+        <div class="stat-card"><div class="stat-value">${mm.progressToNext.needed.toLocaleString()}</div><div class="stat-label">EQM to Next Level</div></div>
+      `;
+      
+      if (mm.milestones.length) {
+        document.getElementById('mm-milestones').innerHTML = `
+          <h3 class="font-semibold mb-2">Milestones Reached:</h3>
+          <ul class="list-disc pl-5">
+            ${mm.milestones.map(m => `<li>${m.level}MM reached on ${m.date} (${m.flight})</li>`).join('')}
+          </ul>
+        `;
+      }
+    }
+
+    function renderTravelEras(eras) {
+      if (eras.insufficient) {
+        document.getElementById('travel-eras').innerHTML = '<p class="text-gray-500">Not enough data to detect travel eras</p>';
+        return;
+      }
+      
+      document.getElementById('travel-eras').innerHTML = `
+        <div class="space-y-3">
+          ${eras.eras.map(era => `
+            <div class="bg-gray-50 rounded p-4">
+              <div class="font-semibold">${era.startYear} - ${era.endYear}</div>
+              <div class="text-sm text-gray-600">Volume: ${era.volume} | Primary Hub: ${era.hub || 'Various'}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderSeasonalPatterns(patterns) {
+      document.getElementById('seasonal-patterns').innerHTML = `
+        <div class="mb-4">
+          <span class="font-semibold">Busiest Month:</span> ${patterns.busiestMonth}
+          ${patterns.peakMonths.length ? `<br><span class="font-semibold">Peak Months:</span> ${patterns.peakMonths.join(', ')}` : ''}
+        </div>
+        <div class="grid grid-cols-6 md:grid-cols-12 gap-2">
+          ${Object.entries(patterns.byMonth).map(([month, count]) => `
+            <div class="text-center p-2 rounded ${count > 0 ? 'bg-blue-100' : 'bg-gray-50'}">
+              <div class="text-xs font-medium">${month}</div>
+              <div class="text-lg">${count}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderYearOverYear(yoy) {
+      const years = Object.keys(yoy.yearlyData).sort();
+      document.getElementById('yoy-stats').innerHTML = `
+        <p class="mb-4"><span class="font-semibold">Busiest Year:</span> ${yoy.busiestYear} (${yoy.yearlyData[yoy.busiestYear]?.flights} flights)</p>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr><th class="px-3 py-2">Year</th><th class="px-3 py-2">Flights</th><th class="px-3 py-2">Distance</th><th class="px-3 py-2">EQM</th><th class="px-3 py-2">Δ Flights</th></tr>
+            </thead>
+            <tbody>
+              ${years.map((y, i) => {
+                const d = yoy.yearlyData[y];
+                const prev = i > 0 ? yoy.yearlyData[years[i-1]] : null;
+                const delta = prev ? d.flights - prev.flights : 0;
+                const deltaClass = delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : '';
+                return `<tr class="border-b">
+                  <td class="px-3 py-2 font-medium">${y}</td>
+                  <td class="px-3 py-2">${d.flights}</td>
+                  <td class="px-3 py-2">${d.distance.toLocaleString()}</td>
+                  <td class="px-3 py-2">${d.eqm.toLocaleString()}</td>
+                  <td class="px-3 py-2 ${deltaClass}">${i > 0 ? (delta > 0 ? '+' : '') + delta : '-'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderConnections(conn) {
+      document.getElementById('connection-stats').innerHTML = `
+        <div class="stats-grid mb-4">
+          <div class="stat-card"><div class="stat-value">${conn.totalConnections}</div><div class="stat-label">Connecting Itineraries</div></div>
+        </div>
+        ${conn.topConnectionAirports.length ? `
+          <h3 class="font-semibold mb-2">Top Connection Hubs:</h3>
+          <ul class="list-disc pl-5">
+            ${conn.topConnectionAirports.map(a => `<li>${a.airport}: ${a.count} connections</li>`).join('')}
+          </ul>
+        ` : ''}
+      `;
+    }
+
+    function renderMilesEfficiency(eff) {
+      document.getElementById('miles-efficiency').innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value">${eff.earningRate}</div><div class="stat-label">Miles per Mile Flown</div></div>
+          <div class="stat-card"><div class="stat-value">${eff.totalMilesEarned.toLocaleString()}</div><div class="stat-label">Total Miles Earned</div></div>
+          <div class="stat-card"><div class="stat-value">${eff.totalMilesFlown.toLocaleString()}</div><div class="stat-label">Total Miles Flown</div></div>
+          <div class="stat-card"><div class="stat-value">${eff.bonusRatio}%</div><div class="stat-label">Bonus Mile Ratio</div></div>
+        </div>
+      `;
+    }
+
+    function renderLoungeROI(roi) {
+      if (roi.insufficient) {
+        document.getElementById('lounge-roi').innerHTML = '<p class="text-gray-500">No lounge visit data available</p>';
+        return;
+      }
+      
+      document.getElementById('lounge-roi').innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value">${roi.totalVisits}</div><div class="stat-label">Total Visits</div></div>
+          <div class="stat-card"><div class="stat-value">${roi.avgVisitsPerYear}</div><div class="stat-label">Avg Visits/Year</div></div>
+          <div class="stat-card"><div class="stat-value">$${roi.estimatedValue.toLocaleString()}</div><div class="stat-label">Est. Value</div></div>
+          <div class="stat-card"><div class="stat-value">${roi.paysOff ? '✓' : '✗'}</div><div class="stat-label">Membership Pays Off</div></div>
+        </div>
+      `;
+    }
+
+    function renderBookingPatterns(bp) {
+      if (bp.insufficient) {
+        document.getElementById('booking-patterns').innerHTML = '<p class="text-gray-500">No booking date data available</p>';
+        return;
+      }
+      
+      document.getElementById('booking-patterns').innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value">${bp.averageLeadDays}</div><div class="stat-label">Avg Lead Days</div></div>
+          <div class="stat-card"><div class="stat-value">${bp.medianLeadDays}</div><div class="stat-label">Median Lead Days</div></div>
+          <div class="stat-card"><div class="stat-value">${bp.totalAnalyzed}</div><div class="stat-label">Bookings Analyzed</div></div>
+        </div>
+      `;
+    }
+
+    // ========================================================================
+    // MAIN PROCESSING
+    // ========================================================================
+
+    function processPhase2(data) {
+      const { flights, loungeVisits } = data;
+      
+      const phase2Stats = {
+        statusHistory: inferStatusHistory(flights),
+        millionMiler: calculateMillionMilerProgress(flights),
+        yearOverYear: calculateYearOverYear(flights),
+        travelEras: detectTravelEras(flights),
+        seasonalPatterns: detectSeasonalPatterns(flights),
+        connections: analyzeConnections(flights),
+        milesEfficiency: analyzeMilesEfficiency(flights),
+        loungeROI: calculateLoungeROI(loungeVisits),
+        bookingPatterns: analyzeBookingPatterns(flights)
+      };
+      
+      // Render all sections
+      renderStatusHistory(phase2Stats.statusHistory);
+      renderMillionMiler(phase2Stats.millionMiler);
+      renderTravelEras(phase2Stats.travelEras);
+      renderSeasonalPatterns(phase2Stats.seasonalPatterns);
+      renderYearOverYear(phase2Stats.yearOverYear);
+      renderConnections(phase2Stats.connections);
+      renderMilesEfficiency(phase2Stats.milesEfficiency);
+      renderLoungeROI(phase2Stats.loungeROI);
+      renderBookingPatterns(phase2Stats.bookingPatterns);
+      
+      // Show JSON output
+      document.getElementById('json-output').textContent = JSON.stringify(phase2Stats, null, 2);
+      
+      // Store for export
+      window.phase2Stats = phase2Stats;
+      
+      // Show results
+      document.getElementById('results').classList.remove('hidden');
+    }
+
+    // Export handlers
+    document.getElementById('export-json').addEventListener('click', () => {
+      if (!window.phase2Stats) return;
+      const blob = new Blob([JSON.stringify(window.phase2Stats, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `aadvantage-stats-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    });
+
+    document.getElementById('export-csv').addEventListener('click', () => {
+      if (!window.aadvantageData?.flights) return;
+      const flights = window.aadvantageData.flights;
+      const headers = ['Date','Flight','Origin','Destination','Distance','Cabin','EQM','EQS','EQD','BaseMiles','BonusMiles'];
+      const rows = flights.map(f => [
+        f.departureDate, f.marketingFlight, f.origin, f.destination,
+        f.distanceMiles, f.cabinFlown, f.eqm, f.eqs, f.eqd, f.baseMiles, f.bonusMiles
+      ]);
+      const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c || ''}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `aadvantage-flights-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    });
+
+    // Hook into app.js processData completion
+    const originalProcessData = window.processData || processData;
+    window.processData = async function() {
+      await originalProcessData();
+      if (window.aadvantageData) {
+        console.log('Phase 2: Processing enhanced statistics...');
+        processPhase2(window.aadvantageData);
+      }
+    };
+  </script>
+</body>
+</html>

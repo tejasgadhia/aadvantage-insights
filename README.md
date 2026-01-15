@@ -1,43 +1,101 @@
-# AAdvantage Insights
+# AAdvantage Insights ✈️
 
-Visualize your American Airlines flight history and AAdvantage data.
+> **🚧 Work in Progress** - This project is under active development
 
-## Features
+A retrospective analytics tool for 15+ years of American Airlines AAdvantage data. Unlike flight tracking apps that focus on future travel, this tool looks backward — telling the story of where you've been, how your travel patterns evolved, and what your loyalty data reveals.
 
-- Upload your AA privacy request data (JSON files)
-- View flight history and statistics
-- Interactive charts showing flights over time and top routes
-- Map visualization of your travels
-- Complete data table with filtering
-- 100% client-side - your data never leaves your browser
+**Design inspiration**: Flighty's Passport feature, Spotify Wrapped, Apple's year-in-review style
 
-## How to Use
+![Dashboard Preview](assets/preview.png)
 
-1. Request your data from American Airlines privacy portal
-2. Open the app at: https://tejasgadhia.github.io/aadvantage-insights
-3. Upload your JSON files (Flight_Records, Account_Activity, Account_Profile, Admirals_Club)
-4. Explore your flight history!
+## ✨ Features
 
-## Privacy
+### The Passport (Overview Dashboard)
+- Lifetime stats: flights, miles, airports, countries
+- Year selector for historical views
+- Status tier and Million Miler tracking
 
-All data processing happens entirely in your browser. No data is sent to any server. The app works completely offline after initial load.
+### Route Map
+- Interactive dark-themed map
+- Frequency-weighted route lines
+- Airport markers with visit counts
 
-## Tech Stack
+### Loyalty Timeline
+- Status progression visualization (Gold → EP)
+- Million Miler progress bar
+- SWU certificate tracking
 
-- Pure HTML/CSS/JavaScript
-- Tailwind CSS (via CDN)
-- Chart.js for visualizations
-- Leaflet for maps
-- PapaParse for CSV parsing
+### Year-by-Year Retrospective
+- Cards for each year with key metrics
+- Color-coded by status tier achieved
+- Travel era detection
 
-## Local Development
+### Lounge Report
+- Visit statistics by airport
+- Estimated membership value
+- Flagship lounge tracking
 
-Simply open `index.html` in your browser. No build process required.
+## 🚀 Quick Start
 
-## License
+1. **Get your data** from [American Airlines Privacy Portal](https://www.aa.com/privacy)
+2. **Open the app**: https://tejasgadhia.github.io/aadvantage-insights/dashboard.html
+3. **Upload your files**:
+   - `Flight_Records_*.json`
+   - `AAdvantage_Account_Activity_*.json`
+   - `AAdvantage_Account_Profile_*.json`
+   - `Admirals_Club_*.json`
+4. **Explore** your flight history!
+
+## 🔒 Privacy
+
+**Your data never leaves your browser.** All processing happens 100% client-side. No servers, no tracking, no data collection. The app works completely offline after initial load.
+
+## 🛠 Tech Stack
+
+- **Vanilla JavaScript** - No build process, just open in browser
+- **Tailwind CSS** (CDN) - Dark mode, glass-morphism design
+- **Chart.js** - Bar charts, doughnut charts
+- **Leaflet + CartoDB** - Dark-themed interactive maps
+- **6,000+ airports** - OpenFlights database for coordinates
+
+## 📁 Project Structure
+
+```
+aadvantage-insights/
+├── dashboard.html      # Main dashboard (Phase 3)
+├── index.html          # Original light-theme version
+├── js/
+│   ├── app.js          # Core parsing & normalization
+│   ├── stats.js        # Phase 1 statistics
+│   ├── stats-extended.js
+│   └── stats-phase2.js # Enhanced analytics
+├── js/data/
+│   └── airports-full.json  # Airport database
+└── source-data/        # Your AA data files (gitignored)
+```
+
+## 🗺 Roadmap
+
+- [x] **Phase 1**: Data parsing & normalization
+- [x] **Phase 2**: Statistics engine
+- [x] **Phase 3**: Visualizations & dashboard
+- [ ] **Phase 4**: AI-powered insights & narratives
+- [ ] **Phase 5**: Shareable social cards & export
+
+## 🧑‍💻 Local Development
+
+```bash
+# Clone the repo
+git clone https://github.com/tejasgadhia/aadvantage-insights.git
+
+# Open in browser (no build needed!)
+open dashboard.html
+```
+
+## 📄 License
 
 MIT
 
-## Disclaimer
+## ⚠️ Disclaimer
 
-This project is not affiliated with American Airlines. AAdvantage and American Airlines are trademarks of American Airlines, Inc.
+This project is not affiliated with American Airlines. AAdvantage® and American Airlines® are trademarks of American Airlines, Inc.
