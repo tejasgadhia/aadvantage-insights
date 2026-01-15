@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Source data files (keep private)
+source-data/
+*.json
+
+# Logs
+*.log
