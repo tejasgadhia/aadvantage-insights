@@ -8,6 +8,42 @@
 
 ---
 
+## Development Workflow (Claude + Tejas)
+
+### Rules of Engagement
+
+1. **Plan First, Build Second**
+   - Always present a plan before making changes or creating new files
+   - Wait for explicit approval before proceeding
+   - If the scope changes during implementation, pause and re-confirm
+
+2. **Keep GitHub in Sync**
+   - After building/changing anything, always push to GitHub
+   - Use meaningful commit messages that describe what changed
+   - Never leave local changes uncommitted at the end of a session
+
+3. **Releases Require Approval**
+   - After pushing to GitHub, ask if a new release is wanted
+   - Provide a preview of the release notes for approval before creating
+   - Format: version number, title, and bullet points of what's included
+
+### Example Workflow
+
+```
+1. Tejas: "Let's add feature X"
+2. Claude: "Here's my plan: [details]. Approve?"
+3. Tejas: "Yes" / "No, change Y"
+4. Claude: [builds feature]
+5. Claude: [pushes to GitHub]
+6. Claude: "Pushed! Want a release? Here's the preview:
+   - Version: v1.1.0
+   - Title: 'Add Feature X'
+   - Notes: [bullet points]"
+7. Tejas: "Yes, ship it" / "No release needed"
+```
+
+---
+
 ## Tech Stack (Actual)
 
 | Technology | Purpose | CDN/Source |
